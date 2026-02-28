@@ -1,0 +1,1644 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>صندوق ظفر - استمارة بحث أسرية</title>
+    <!-- Version: 1.0.5 - Cache Buster -->
+    <meta name="description" content="استمارة بحث أسرية لصندوق ظفر للمساعدات">
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <style>
+        :root {
+            --primary: #1B3A2A;
+            --primary-dark: #122B1E;
+            --primary-light: #2D5A40;
+            --primary-lighter: #E8F0EC;
+            --gold: #C5A55A;
+            --gold-dark: #A8893E;
+            --gold-light: #D4BA7A;
+            --gold-lighter: #FDF8EE;
+            --bg-color: #F4F6F5;
+            --card-bg: #FFFFFF;
+            --text-main: #1A1A1A;
+            --text-muted: #6B7280;
+            --text-on-dark: #FFFFFF;
+            --border: #E2E8F0;
+            --danger: #DC2626;
+            --success: #16A34A;
+            --shadow-sm: 0 1px 3px rgba(27, 58, 42, 0.08);
+            --shadow-md: 0 4px 12px rgba(27, 58, 42, 0.12);
+            --shadow-lg: 0 8px 30px rgba(27, 58, 42, 0.15);
+            --radius: 14px;
+            --radius-sm: 10px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Cairo', sans-serif;
+            background: var(--bg-color);
+            color: var(--text-main);
+            line-height: 1.7;
+            min-height: 100vh;
+        }
+
+        /* ===== Top Bar ===== */
+        .top-bar {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            padding: 20px 0;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .top-bar::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(197, 165, 90, 0.08) 0%, transparent 60%);
+            animation: shimmer 8s ease-in-out infinite;
+        }
+
+        @keyframes shimmer {
+            0%, 100% { transform: translate(0, 0); }
+            50% { transform: translate(-5%, 5%); }
+        }
+
+        .top-bar-content {
+            position: relative;
+            z-index: 1;
+        }
+
+        .logo-img {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 3px solid var(--gold);
+            margin-bottom: 10px;
+            background: var(--primary);
+        }
+
+        .top-bar h1 {
+            color: var(--gold);
+            font-size: 28px;
+            font-weight: 800;
+            margin-bottom: 2px;
+        }
+
+        .top-bar p {
+            color: rgba(255, 255, 255, 0.75);
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        /* ===== Progress Bar ===== */
+        .progress-container {
+            background: var(--card-bg);
+            padding: 20px 30px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: var(--shadow-sm);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .progress-steps {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .progress-step {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+            flex: 1;
+            cursor: pointer;
+        }
+
+        .step-circle {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--border);
+            color: var(--text-muted);
+            font-size: 14px;
+            font-weight: 700;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            z-index: 2;
+        }
+
+        .step-label {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-top: 6px;
+            font-weight: 600;
+            white-space: nowrap;
+            transition: color 0.3s;
+        }
+
+        .progress-step.active .step-circle {
+            background: var(--primary);
+            color: var(--text-on-dark);
+            box-shadow: 0 0 0 4px rgba(27, 58, 42, 0.15);
+            transform: scale(1.1);
+        }
+
+        .progress-step.active .step-label {
+            color: var(--primary);
+        }
+
+        .progress-step.completed .step-circle {
+            background: var(--gold);
+            color: var(--primary-dark);
+        }
+
+        .progress-step.completed .step-label {
+            color: var(--gold-dark);
+        }
+
+        .step-line {
+            flex: 1;
+            height: 3px;
+            background: var(--border);
+            margin: 0 -5px;
+            margin-bottom: 22px;
+            transition: background 0.4s;
+            border-radius: 2px;
+        }
+
+        .step-line.completed {
+            background: var(--gold);
+        }
+
+        /* ===== Main Container ===== */
+        .main-container {
+            max-width: 680px;
+            margin: 0 auto;
+            padding: 24px 16px 40px;
+        }
+
+        /* ===== Form Steps ===== */
+        .form-step {
+            display: none;
+            animation: fadeSlideIn 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .form-step.active {
+            display: block;
+        }
+
+        @keyframes fadeSlideIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* ===== Section Card ===== */
+        .section-card {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-md);
+            padding: 30px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(27, 58, 42, 0.06);
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            margin-bottom: 28px;
+            padding-bottom: 16px;
+            border-bottom: 2px solid var(--primary-lighter);
+        }
+
+        .section-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            background: var(--gold-lighter);
+            border: 1.5px solid var(--gold-light);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            flex-shrink: 0;
+            box-shadow: 0 2px 8px rgba(197, 165, 90, 0.1);
+        }
+
+        .section-header h2 {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .section-header p {
+            font-size: 13px;
+            color: var(--text-muted);
+            margin-top: 2px;
+        }
+
+        /* ===== Form Groups ===== */
+        .form-group {
+            margin-bottom: 22px;
+        }
+
+        label {
+            display: block;
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--text-main);
+            margin-bottom: 8px;
+        }
+
+        .required {
+            color: var(--danger);
+            margin-right: 3px;
+        }
+
+        input[type="text"],
+        input[type="number"],
+        input[type="tel"],
+        input[type="email"],
+        select,
+        textarea {
+            width: 100%;
+            padding: 13px 16px;
+            border: 2px solid var(--border);
+            border-radius: var(--radius-sm);
+            font-size: 15px;
+            font-family: 'Cairo', sans-serif;
+            color: var(--text-main);
+            background: #FAFBFC;
+            transition: all 0.25s ease;
+            outline: none;
+        }
+
+        input::placeholder,
+        textarea::placeholder {
+            color: #9CA3AF;
+        }
+
+        input:focus,
+        select:focus,
+        textarea:focus {
+            border-color: var(--primary);
+            background: #fff;
+            box-shadow: 0 0 0 4px rgba(27, 58, 42, 0.08);
+        }
+
+        select {
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%236B7280'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: left 14px center;
+            background-size: 18px;
+            padding-left: 40px;
+            cursor: pointer;
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 90px;
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        /* ===== Commitment Block ===== */
+        .commitment-card {
+            background: var(--gold-lighter);
+            border-right: 4px solid var(--gold);
+            padding: 18px 20px;
+            border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+            margin-bottom: 24px;
+        }
+
+        .commitment-card p {
+            color: var(--gold-dark);
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        /* ===== Radio Blocks ===== */
+        .radio-blocks {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .radio-block {
+            position: relative;
+        }
+
+        .radio-block input {
+            position: absolute;
+            opacity: 0;
+        }
+
+        .radio-block label {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 14px;
+            border: 2px solid var(--border);
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--text-muted);
+            transition: all 0.25s;
+            margin: 0;
+            background: #FAFBFC;
+        }
+
+        .radio-block input:checked + label {
+            border-color: var(--primary);
+            color: var(--primary);
+            background: var(--primary-lighter);
+            box-shadow: 0 2px 8px rgba(27, 58, 42, 0.1);
+        }
+
+        /* ===== File Upload ===== */
+        .file-upload {
+            border: 2px dashed var(--border);
+            border-radius: var(--radius-sm);
+            padding: 28px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.25s;
+            background: #FAFBFC;
+        }
+
+        .file-upload:hover {
+            border-color: var(--primary);
+            background: var(--primary-lighter);
+        }
+
+        .file-upload input { display: none; }
+
+        .file-upload .icon {
+            font-size: 28px;
+            margin-bottom: 8px;
+        }
+
+        .file-upload p {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-main);
+        }
+
+        .file-upload span {
+            font-size: 12px;
+            color: var(--text-muted);
+            display: block;
+            margin-top: 4px;
+        }
+
+        /* ===== Image Previews ===== */
+        .preview-gallery {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-top: 15px;
+        }
+
+        .preview-item {
+            position: relative;
+            width: 80px;
+            height: 80px;
+            border-radius: 10px;
+            overflow: hidden;
+            border: 2px solid var(--border);
+            background: #f3f4f6;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .preview-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .preview-item .file-icon {
+            font-size: 28px;
+            color: var(--text-muted);
+        }
+
+        .preview-remove {
+            position: absolute;
+            top: 4px;
+            right: 4px;
+            background: rgba(220, 38, 38, 0.9);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 22px;
+            height: 22px;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .preview-remove:hover {
+            background: rgba(185, 28, 28, 1);
+            transform: scale(1.1);
+        }
+
+        /* ===== Dynamic Add Items ===== */
+        .dynamic-list {
+            margin-top: 12px;
+        }
+
+        .dynamic-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+            animation: fadeSlideIn 0.3s ease;
+        }
+
+        .dynamic-item input,
+        .dynamic-item select {
+            flex: 1;
+        }
+
+        .btn-remove {
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            border: 2px solid #FCA5A5;
+            background: #FEF2F2;
+            color: var(--danger);
+            font-size: 18px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            flex-shrink: 0;
+        }
+
+        .btn-remove:hover {
+            background: #FEE2E2;
+            border-color: var(--danger);
+            transform: scale(1.1);
+        }
+
+        .btn-add {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            width: 100%;
+            padding: 12px;
+            border: 2px dashed var(--gold);
+            border-radius: var(--radius-sm);
+            background: var(--gold-lighter);
+            color: var(--gold-dark);
+            font-size: 14px;
+            font-weight: 700;
+            font-family: 'Cairo', sans-serif;
+            cursor: pointer;
+            transition: all 0.25s;
+            margin-top: 8px;
+        }
+
+        .btn-add:hover {
+            background: #FAF0D6;
+            border-color: var(--gold-dark);
+            transform: translateY(-1px);
+        }
+
+        .btn-add .plus {
+            width: 26px;
+            height: 26px;
+            background: var(--gold);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            font-weight: 800;
+        }
+
+        /* ===== Navigation Buttons ===== */
+        .nav-buttons {
+            display: flex;
+            gap: 12px;
+            margin-top: 10px;
+        }
+
+        .btn-next,
+        .btn-prev {
+            flex: 1;
+            padding: 16px 24px;
+            border: none;
+            border-radius: var(--radius-sm);
+            font-size: 16px;
+            font-weight: 700;
+            font-family: 'Cairo', sans-serif;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-next {
+            background: linear-gradient(135deg, var(--primary), var(--primary-light));
+            color: var(--text-on-dark);
+            box-shadow: 0 4px 15px rgba(27, 58, 42, 0.3);
+        }
+
+        .btn-next:hover {
+            box-shadow: 0 6px 20px rgba(27, 58, 42, 0.4);
+            transform: translateY(-2px);
+        }
+
+        .btn-prev {
+            background: transparent;
+            color: var(--primary);
+            border: 2px solid var(--border);
+        }
+
+        .btn-prev:hover {
+            background: var(--primary-lighter);
+            border-color: var(--primary);
+        }
+
+        .btn-submit {
+            width: 100%;
+            padding: 18px;
+            background: linear-gradient(135deg, var(--gold), var(--gold-dark));
+            color: var(--primary-dark);
+            font-size: 18px;
+            font-weight: 800;
+            font-family: 'Cairo', sans-serif;
+            border: none;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(197, 165, 90, 0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .btn-submit:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 25px rgba(197, 165, 90, 0.5);
+        }
+
+        /* ===== Footer ===== */
+        .page-footer {
+            text-align: center;
+            padding: 30px 20px;
+            color: var(--text-muted);
+            font-size: 13px;
+        }
+
+        .whatsapp-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: #16A34A;
+            color: white;
+            padding: 10px 22px;
+            border-radius: 50px;
+            text-decoration: none;
+            font-weight: 700;
+            font-size: 14px;
+            margin-top: 12px;
+            transition: all 0.2s;
+            box-shadow: 0 2px 8px rgba(22, 163, 74, 0.3);
+        }
+
+        .whatsapp-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 12px rgba(22, 163, 74, 0.4);
+        }
+
+        /* Map Styles */
+        #locationMap {
+            height: 300px;
+            width: 100%;
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
+            margin-bottom: 20px;
+            z-index: 1;
+        }
+        .map-help {
+            font-size: 13px;
+            color: var(--text-muted);
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        /* ===== Success Modal ===== */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(4px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s;
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 40px 30px;
+            border-radius: var(--radius);
+            text-align: center;
+            max-width: 400px;
+            width: 90%;
+            transform: scale(0.8) translateY(20px);
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+        }
+
+        .modal-overlay.active .modal-content {
+            transform: scale(1) translateY(0);
+        }
+
+        .success-icon {
+            width: 80px;
+            height: 80px;
+            background: #10B981;
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 40px;
+            margin: 0 auto 20px;
+            box-shadow: 0 0 0 10px rgba(16, 185, 129, 0.1);
+        }
+
+        .modal-content h3 {
+            color: var(--primary-dark);
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+
+        .modal-content p {
+            color: var(--text-muted);
+            margin-bottom: 25px;
+            line-height: 1.6;
+        }
+
+        .btn-close {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 50px;
+            font-size: 16px;
+            font-weight: 700;
+            font-family: 'Cairo', sans-serif;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-close:hover {
+            background: var(--primary-dark);
+            box-shadow: 0 4px 12px rgba(27, 58, 42, 0.2);
+        }
+
+        /* ===== Responsive ===== */
+        @media (max-width: 640px) {
+            .section-card { padding: 20px 18px; }
+            .grid-2 { grid-template-columns: 1fr; gap: 0; }
+            .progress-container { padding: 14px 16px; }
+            .step-label { font-size: 10px; }
+            .step-circle { width: 32px; height: 32px; font-size: 13px; }
+            .top-bar h1 { font-size: 24px; }
+            .main-container { padding: 16px 12px 30px; }
+        }
+
+        /* ===== Landing Page ===== */
+        .landing-page {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            z-index: 2000;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 40px 20px;
+            text-align: center;
+            overflow-y: auto;
+            animation: fadeIn 0.8s ease-out;
+        }
+
+        .landing-content {
+            max-width: 850px;
+            width: 100%;
+        }
+
+        .landing-logo {
+            width: 220px;
+            height: 220px;
+            border-radius: 50%;
+            border: 6px solid var(--gold);
+            margin-bottom: 35px;
+            box-shadow: 0 0 60px rgba(197, 165, 90, 0.4);
+            background: var(--primary);
+            padding: 15px;
+            animation: logoPulse 2s infinite ease-in-out;
+        }
+
+        @keyframes logoPulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.03); }
+        }
+
+        .landing-title {
+            color: var(--gold);
+            font-size: 34px;
+            font-weight: 900;
+            margin-bottom: 20px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .landing-desc {
+            color: rgba(255, 255, 255, 0.95);
+            font-size: 19px;
+            margin-bottom: 40px;
+            line-height: 1.8;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 25px;
+            border-radius: var(--radius);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+
+
+        .btn-start {
+            padding: 18px 70px;
+            background: linear-gradient(135deg, var(--gold), var(--gold-dark));
+            color: var(--primary-dark);
+            border: none;
+            border-radius: 50px;
+            font-size: 22px;
+            font-weight: 900;
+            font-family: 'Cairo', sans-serif;
+            cursor: pointer;
+            box-shadow: 0 10px 30px rgba(197, 165, 90, 0.4);
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .btn-start:hover {
+            transform: scale(1.05) translateY(-2px);
+            box-shadow: 0 15px 40px rgba(197, 165, 90, 0.5);
+        }
+
+        .hidden { display: none !important; }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Success Modal -->
+    <div class="modal-overlay" id="successModal">
+        <div class="modal-content">
+            <div class="success-icon">✓</div>
+            <h3>تم إرسال الطلب بنجاح!</h3>
+            <p>شكراً لتعاونك وتعبئة الاستمارة. تم استلام بياناتك وسنقوم بالتواصل معك في أقرب وقت ممكن.</p>
+            <button class="btn-close" onclick="closeSuccessModal()">إغلاق والعودة للرئيسية</button>
+        </div>
+    </div>
+
+    <!-- Landing Page -->
+    <div id="landing-page" class="landing-page">
+        <div class="landing-content">
+            <img src="logo.png" alt="صندوق ظفر" class="landing-logo">
+            <h1 class="landing-title">برنامج البحث الأسري</h1>
+            <div class="landing-desc">
+                <p>نرحب بكم في مبادرة "البحث الأسري" التابعة لصندوق ظفر. يهدف هذا المشروع إلى بناء جسر تواصل فعال بين الصندوق والأسر المستحقة، لضمان وصول الدعم لمستحقيه بأعلى معايير الشفافية والاحترافية الاجتماعية.</p>
+            </div>
+
+            <button class="btn-start" onclick="startForm()">
+                بدء تعبئة الاستبانة
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M19 12H5m14 0l-7 7m7-7l-7-7" />
+                </svg>
+            </button>
+        </div>
+    </div>
+
+    <!-- Top Bar -->
+    <div class="top-bar hidden">
+        <div class="top-bar-content">
+            <img src="logo.png" alt="صندوق ظفر" class="logo-img">
+            <h1>صندوق ظفر</h1>
+            <p>استمارة بحث أسرية</p>
+        </div>
+    </div>
+
+    <!-- Progress Bar -->
+    <div class="progress-container hidden">
+        <div class="progress-steps">
+            <div class="progress-step active" onclick="goToStep(0)">
+                <div class="step-circle">1</div>
+                <div class="step-label">التعهد</div>
+            </div>
+            <div class="step-line"></div>
+            <div class="progress-step" onclick="goToStep(1)">
+                <div class="step-circle">2</div>
+                <div class="step-label">البيانات</div>
+            </div>
+            <div class="step-line"></div>
+            <div class="progress-step" onclick="goToStep(2)">
+                <div class="step-circle">3</div>
+                <div class="step-label">الحالة</div>
+            </div>
+            <div class="step-line"></div>
+            <div class="progress-step" onclick="goToStep(3)">
+                <div class="step-circle">4</div>
+                <div class="step-label">السكن</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="main-container hidden">
+        <form id="mainForm" novalidate>
+
+            <!-- Step 1: التعهد والإقرار -->
+            <div class="form-step active" id="step-0">
+                <div class="section-card">
+                    <div class="section-header">
+                        <div class="section-icon">📋</div>
+                        <div>
+                            <h2>التعهد والإقرار</h2>
+                            <p>يرجى قراءة التعهد والموافقة</p>
+                        </div>
+                    </div>
+
+                    <div class="commitment-card">
+                        <p>أتعهد أنا مقدم الطلب بأن جميع البيانات والمعلومات المدونة في هذه الاستمارة صحيحة ودقيقة وكاملة حسب علمي، وأتحمل كامل المسؤولية في حال ثبوت خلاف ذلك.</p>
+                        <p style="margin-top: 10px;">كما أقر بموافقتي على تقديم جميع المستندات والوثائق الرسمية التي تطلبها الجهة المختصة للتحقق من صحة البيانات، وأوافق على استخدام المعلومات الواردة في هذه الاستمارة لغرض دراسة الحالة وحصر الأسر المستحقة للدعم فقط.</p>
+                    </div>
+
+                    <div class="radio-blocks">
+                        <div class="radio-block">
+                            <input type="radio" id="commit-yes" name="commitment" value="yes" required onchange="toggleNextBtn()">
+                            <label for="commit-yes">✅ أتعهد</label>
+                        </div>
+                        <div class="radio-block">
+                            <input type="radio" id="commit-no" name="commitment" value="no" onchange="toggleNextBtn()">
+                            <label for="commit-no">❌ لا أتعهد</label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="nav-buttons">
+                    <button type="button" class="btn-next" id="btn-next-step1" onclick="nextStep()" disabled style="opacity: 0.5; cursor: not-allowed;">
+                        التالي
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Step 2: بيانات رب الأسرة -->
+            <div class="form-step" id="step-1">
+                <div class="section-card">
+                    <div class="section-header">
+                        <div class="section-icon">👤</div>
+                        <div>
+                            <h2>بيانات رب الأسرة</h2>
+                            <p>أدخل بيانات صاحب الطلب</p>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>الاسم الرباعي <span class="required">*</span></label>
+                        <input type="text" name="fullName" placeholder="أدخل اسمك الكامل" required>
+                    </div>
+
+                    <div class="grid-2">
+                        <div class="form-group">
+                            <label>رقم الهوية <span class="required">*</span></label>
+                            <input type="text" name="idNumber" placeholder="١٠ أرقام" required>
+                        </div>
+                        <div class="form-group">
+                            <label>العمر <span class="required">*</span></label>
+                            <input type="number" name="age" min="18" max="100" placeholder="مثال: 45" required>
+                        </div>
+                    </div>
+
+                    <div class="grid-2">
+                        <div class="form-group">
+                            <label>رقم الجوال <span class="required">*</span></label>
+                            <input type="tel" name="phone" placeholder="05XXXXXXXX" required>
+                        </div>
+                        <div class="form-group">
+                            <label>رقم جوال بديل</label>
+                            <input type="tel" name="altPhone" placeholder="05XXXXXXXX">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>إرفاق صورة الهوية الوطنية <span class="required">*</span></label>
+                        <label class="file-upload">
+                            <input type="file" name="idFile" id="idFile" multiple required accept=".pdf,image/*" onchange="previewFiles(this, 'idFile-preview')">
+                            <div class="icon">📁</div>
+                            <p>اضغط للرفع أو اسحب الملفات هنا</p>
+                            <span>(PDF, JPG, PNG - حتى 5 ملفات)</span>
+                        </label>
+                        <div class="preview-gallery" id="idFile-preview"></div>
+                    </div>
+                </div>
+
+                <div class="nav-buttons">
+                    <button type="button" class="btn-prev" onclick="prevStep()">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+                        السابق
+                    </button>
+                    <button type="button" class="btn-next" onclick="nextStep()">
+                        التالي
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Step 3: الحالة الاجتماعية والمعالين -->
+            <div class="form-step" id="step-2">
+                <div class="section-card">
+                    <div class="section-header">
+                        <div class="section-icon">👨‍👩‍👧‍👦</div>
+                        <div>
+                            <h2>الحالة الاجتماعية والمعالين</h2>
+                            <p>بيانات الحالة الاجتماعية والوظيفية والأبناء</p>
+                        </div>
+                    </div>
+
+                    <div class="grid-2">
+                        <div class="form-group">
+                            <label>الحالة الاجتماعية <span class="required">*</span></label>
+                            <select name="maritalStatus" required>
+                                <option value="" disabled selected>اختر الحالة</option>
+                                <option value="متزوج/متزوجة">متزوج / متزوجة</option>
+                                <option value="أرمل/أرملة">أرمل / أرملة</option>
+                                <option value="مطلق/مطلقة">مطلق / مطلقة</option>
+                                <option value="ذوي همم">من ذوي الهمم</option>
+                                <option value="كبير سن">كبير في السن</option>
+                                <option value="حالة أخرى">حالة أخرى</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>الحالة الوظيفية <span class="required">*</span></label>
+                            <select name="employmentStatus" required>
+                                <option value="" disabled selected>اختر الحالة</option>
+                                <option value="موظف حكومي">موظف حكومي</option>
+                                <option value="قطاع خاص">قطاع خاص</option>
+                                <option value="متقاعد">متقاعد</option>
+                                <option value="عاطل عن العمل">عاطل عن العمل / ربة منزل</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="grid-2">
+                        <div class="form-group">
+                            <label>متوسط الدخل الشهري <span class="required">*</span></label>
+                            <select name="income" required>
+                                <option value="" disabled selected>حدد نطاق الدخل</option>
+                                <option value="بدون دخل">بدون دخل</option>
+                                <option value="1-1000">أقل من 1000 ريال</option>
+                                <option value="1001-2000">1000 - 2000 ريال</option>
+                                <option value="2001-3000">2000 - 3000 ريال</option>
+                                <option value="3001-4000">3000 - 4000 ريال</option>
+                                <option value="أكثر">أكثر من ذلك</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>إجمالي الديون (إن وجدت)</label>
+                            <input type="number" name="debtAmount" placeholder="أدخل مبلغ الدين" value="0">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>مصادر الدعم الحالية (اختر ما ينطبق)</label>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-top: 5px;">
+                            <label style="display: flex; align-items: center; gap: 8px; font-size: 14px; cursor: pointer;">
+                                <input type="checkbox" name="supportSources[]" value="الضمان الاجتماعي"> الضمان الاجتماعي
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 8px; font-size: 14px; cursor: pointer;">
+                                <input type="checkbox" name="supportSources[]" value="حساب المواطن"> حساب المواطن
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 8px; font-size: 14px; cursor: pointer;">
+                                <input type="checkbox" name="supportSources[]" value="التأمينات/التقاعد"> التأمينات / التقاعد
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 8px; font-size: 14px; cursor: pointer;">
+                                <input type="checkbox" name="supportSources[]" value="جمعية خيرية أخرى"> جمعية خيرية أخرى
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Dynamic Children List -->
+                    <div class="form-group">
+                        <label>بيانات الأبناء / المعالين</label>
+                        <div class="dynamic-list" id="childrenList">
+                            <div class="dynamic-item">
+                                <input type="text" name="childName[]" placeholder="اسم الابن/المعال">
+                                <select name="childStage[]">
+                                    <option value="" disabled selected>المرحلة</option>
+                                    <option value="رضيع">رضيع</option>
+                                    <option value="ما قبل المدرسة">ما قبل المدرسة</option>
+                                    <option value="ابتدائي">ابتدائي</option>
+                                    <option value="متوسط">متوسط</option>
+                                    <option value="ثانوي">ثانوي</option>
+                                    <option value="جامعي">جامعي</option>
+                                    <option value="غير ذلك">غير ذلك</option>
+                                </select>
+                                <button type="button" class="btn-remove" onclick="removeChild(this)" title="حذف">✕</button>
+                            </div>
+                        </div>
+                        <button type="button" class="btn-add" onclick="addChild()">
+                            <span class="plus">+</span>
+                            إضافة ابن / معال آخر
+                        </button>
+                    </div>
+
+                    <div class="form-group">
+                        <label>حالة صحية خاصة في الأسرة؟ (إن وجد)</label>
+                        <textarea name="medicalInfo" placeholder="إذا كان هناك أمراض مزمنة أو إعاقات، يرجى التوضيح هنا..."></textarea>
+                    </div>
+                </div>
+
+                <div class="nav-buttons">
+                    <button type="button" class="btn-prev" onclick="prevStep()">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+                        السابق
+                    </button>
+                    <button type="button" class="btn-next" onclick="nextStep()">
+                        التالي
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Step 4: السكن والتواصل -->
+            <div class="form-step" id="step-3">
+                <div class="section-card">
+                    <div class="section-header">
+                        <div class="section-icon">🏠</div>
+                        <div>
+                            <h2>بيانات السكن والتواصل</h2>
+                            <p>معلومات عن السكن والحساب البنكي</p>
+                        </div>
+                    </div>
+
+                    <div class="grid-2">
+                        <div class="form-group">
+                            <label>نوع السكن <span class="required">*</span></label>
+                            <select name="housingType" required>
+                                <option value="" disabled selected>اختر نوع السكن</option>
+                                <option value="شقة">شقة</option>
+                                <option value="بيت شعبي">بيت شعبي</option>
+                                <option value="ملحق/غرفة">ملحق / غرفة</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>ملكية السكن <span class="required">*</span></label>
+                            <select name="ownership" required>
+                                <option value="" disabled selected>اختر حالة الملكية</option>
+                                <option value="مستأجر">مستأجر</option>
+                                <option value="ملك">ملك</option>
+                                <option value="تبرع">إقامة مجانية/تبرع</option>
+                            </select>
+                        </div>
+                    </div>
+
+                        <div class="form-group">
+                            <label>مبلغ الإيجار (إذا كنت مستأجراً)</label>
+                            <input type="text" name="rentAmount" placeholder="المبلغ السنوي أو الشهري">
+                        </div>
+                        <div class="form-group">
+                            <label>عدد الغرف في المنزل <span class="required">*</span></label>
+                            <input type="number" name="roomsCount" placeholder="مثال: 3" required>
+                        </div>
+                    <!-- Extra div removed from here -->
+
+                    <div class="form-group">
+                        <label>ما هي احتياجات المنزل الأساسية؟</label>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-top: 5px;">
+                            <label style="display: flex; align-items: center; gap: 8px; font-size: 14px; cursor: pointer;">
+                                <input type="checkbox" name="homeNeeds[]" value="مكيفات"> مكيفات
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 8px; font-size: 14px; cursor: pointer;">
+                                <input type="checkbox" name="homeNeeds[]" value="ثلاجة/غسالة"> ثلاجة / غسالة
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 8px; font-size: 14px; cursor: pointer;">
+                                <input type="checkbox" name="homeNeeds[]" value="أثاث/فرش"> أثاث / فرش
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 8px; font-size: 14px; cursor: pointer;">
+                                <input type="checkbox" name="homeNeeds[]" value="صيانة إنشائية"> صيانة إنشائية
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>الاحتياج الأكثر أولوية الآن للأسرة <span class="required">*</span></label>
+                        <select name="priorityNeed" required>
+                            <option value="" disabled selected>اختر النوع</option>
+                            <option value="سداد إيجار">سداد إيجار</option>
+                            <option value="سلة غذائية">سلة غذائية</option>
+                            <option value="علاج/دواء">علاج / دواء</option>
+                            <option value="دعم تعليمي للأبناء">دعم تعليمي للأبناء</option>
+                            <option value="أجهزة منزلية">أجهزة منزلية</option>
+                            <option value="أخرى">أخرى</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>تحديد موقع المنزل على الخريطة <span class="required">*</span></label>
+                        <div class="map-help">📍 يرجى تحريك العلامة الحمراء لتحديد موقع منزلك بدقة</div>
+                        <div id="locationMap"></div>
+                        <input type="hidden" id="latitude" name="latitude">
+                        <input type="hidden" id="longitude" name="longitude">
+                    </div>
+
+                    <div class="grid-2">
+                        <div class="form-group">
+                            <label>اسم البنك</label>
+                            <input type="text" name="bankName" placeholder="مثال: مصرف الراجحي">
+                        </div>
+                        <div class="form-group">
+                            <label>رقم حساب الآيبان الخاص بك (للإيداع)</label>
+                            <input type="text" name="accountNumber" placeholder="SA0000...">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="nav-buttons">
+                    <button type="button" class="btn-prev" onclick="prevStep()">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+                        السابق
+                    </button>
+                    <button type="button" class="btn-submit" onclick="submitForm()">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                        إرسال الطلب
+                    </button>
+                </div>
+            </div>
+
+        </form>
+    </div>
+
+    <!-- Footer -->
+    <div class="page-footer" style="padding: 30px 20px; border-top: 1px solid var(--border); background: #fcfcfc;">
+        <div style="font-weight: 700; color: var(--primary); font-size: 15px; margin-bottom: 5px;">جميع الحقوق محفوظة لصندوق ظفر &copy; 2026</div>
+        <div style="font-size: 11px; color: var(--text-muted); letter-spacing: 0.5px; opacity: 0.8;">تصميم وبرمجة abu zaid</div>
+    </div>
+
+    <script>
+        let currentStep = 0;
+        const totalSteps = 4;
+
+        function updateProgress() {
+            const steps = document.querySelectorAll('.progress-step');
+            const lines = document.querySelectorAll('.step-line');
+
+            steps.forEach((step, i) => {
+                step.classList.remove('active', 'completed');
+                if (i === currentStep) step.classList.add('active');
+                else if (i < currentStep) step.classList.add('completed');
+            });
+
+            lines.forEach((line, i) => {
+                line.classList.toggle('completed', i < currentStep);
+            });
+
+            // Show/hide form steps
+            document.querySelectorAll('.form-step').forEach((el, i) => {
+                el.classList.toggle('active', i === currentStep);
+            });
+
+            // Initialize Map if on Step 3
+            if (currentStep === 3 && !map) {
+                setTimeout(initMap, 100); // Small timeout to ensure element is visible
+            }
+        }
+
+        function validateCurrentStep() {
+            // Specific check for the Pledge step
+            if (currentStep === 0) {
+                const commitYes = document.getElementById('commit-yes');
+                if (!commitYes.checked) {
+                    commitYes.setCustomValidity('يجب اختيار "أتعهد" للمتابعة وإكمال الاستمارة.');
+                    commitYes.reportValidity();
+                    return false;
+                } else {
+                    commitYes.setCustomValidity(''); // Clear error if checked
+                }
+            }
+
+            const currentStepEl = document.querySelector('.form-step.active');
+            const requiredInputs = currentStepEl.querySelectorAll('input[required], select[required], textarea[required]');
+            let isValid = true;
+            let firstInvalid = null;
+
+            // Remove old error styles
+            currentStepEl.querySelectorAll('.error-msg').forEach(e => e.remove());
+            requiredInputs.forEach(input => input.style.borderColor = '');
+
+            requiredInputs.forEach(input => {
+                if (!input.checkValidity()) {
+                    isValid = false;
+                    input.style.borderColor = 'var(--danger)';
+                    if (!firstInvalid) firstInvalid = input;
+                }
+            });
+
+            if (firstInvalid) {
+                firstInvalid.reportValidity(); // Show native browser tooltip only for the first one
+            }
+
+            return isValid;
+        }
+
+        // Initialize Supabase Client
+        const SUPABASE_URL = 'https://nxloeclhomucrqcaoffq.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im54bG9lY2xob211Y3JxY2FvZmZxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIyMTc2NDEsImV4cCI6MjA4Nzc5MzY0MX0.L1pwRy7r9WQQPeKKXnkNr7KYGPRDKLFfk4IyDhQJ8Vk';
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        function startForm() {
+            document.getElementById('landing-page').classList.add('hidden');
+            document.querySelector('.top-bar').classList.remove('hidden');
+            document.querySelector('.progress-container').classList.remove('hidden');
+            document.querySelector('.main-container').classList.remove('hidden');
+            window.scrollTo(0, 0);
+        }
+
+        async function submitForm() {
+            console.log('--- Starting Form Submission (v1.0.5) ---');
+            if (validateCurrentStep()) {
+                
+                // Show a loading state on the button
+                const btnSubmit = document.querySelector('.btn-submit');
+                const originalBtnText = btnSubmit.innerHTML;
+                btnSubmit.innerHTML = 'جاري الإرسال... ⏳';
+                btnSubmit.disabled = true;
+
+                try {
+                    // Gather all form data
+                    const form = document.getElementById('mainForm');
+                    const formData = new FormData(form);
+
+                    // Helper for file uploads
+                    async function uploadFiles(inputNode, pathPrefix) {
+                        const files = inputNode.files;
+                        const urls = [];
+                        if (!files || files.length === 0) return urls;
+
+                        for (let i = 0; i < files.length; i++) {
+                            const file = files[i];
+                            const fileExt = file.name.split('.').pop();
+                            const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+                            const filePath = `${pathPrefix}/${fileName}`;
+
+                            const { data, error } = await supabaseClient.storage
+                                .from('attachments')
+                                .upload(filePath, file);
+
+                            if (error) throw error;
+
+                            const { data: { publicUrl } } = supabaseClient.storage
+                                .from('attachments')
+                                .getPublicUrl(filePath);
+                            
+                            urls.push(publicUrl);
+                        }
+                        return urls;
+                    }
+
+                    // Reconstruct dependents array
+                    const dependentsList = [];
+                    const depNames = formData.getAll('childName[]');
+                    const depStages = formData.getAll('childStage[]');
+                    for(let i=0; i<depNames.length; i++) {
+                        if(depNames[i].trim() !== '') {
+                            dependentsList.push({ name: depNames[i], stage: depStages[i] });
+                        }
+                    }
+
+                    // Upload ID attachments
+                    btnSubmit.innerHTML = 'جاري رفع الملفات... 📁';
+                    const idFilesUrls = await uploadFiles(document.getElementById('idFile'), 'id_cards');
+
+                    btnSubmit.innerHTML = 'جاري الإرسال... ⏳';
+
+                    const supportSources = formData.getAll('supportSources[]');
+                    const homeNeeds = formData.getAll('homeNeeds[]');
+
+                    // Build the submission payload
+                    const submissionData = {
+                        full_name: formData.get('fullName'),
+                        id_number: formData.get('idNumber'),
+                        age: parseInt(formData.get('age')),
+                        phone: formData.get('phone'),
+                        alt_phone: formData.get('altPhone') || null,
+                        
+                        marital_status: formData.get('maritalStatus'),
+                        employment_status: formData.get('employmentStatus'),
+                        income: formData.get('income'),
+                        debt_amount: parseFloat(formData.get('debtAmount')) || 0,
+                        support_sources: supportSources,
+                        medical_info: formData.get('medicalInfo') || null,
+                        
+                        housing_type: formData.get('housingType'),
+                        ownership: formData.get('ownership'),
+                        rent_amount: formData.get('rentAmount') || null,
+                        rooms_count: parseInt(formData.get('roomsCount')) || 0,
+                        home_needs: homeNeeds,
+                        priority_need: formData.get('priorityNeed'),
+
+                        bank_name: formData.get('bankName') || null,
+                        account_number: formData.get('accountNumber') || null,
+                        
+                        latitude: parseFloat(formData.get('latitude')) || null,
+                        longitude: parseFloat(formData.get('longitude')) || null,
+
+                        id_files: idFilesUrls,
+                        dependents: dependentsList
+                    };
+
+                    // Send to Supabase
+                    const { data, error } = await supabaseClient
+                        .from('submissions')
+                        .insert([submissionData]);
+
+                    if (error) throw error;
+
+                    // Show custom success modal
+                    document.getElementById('successModal').classList.add('active');
+
+                } catch (error) {
+                    console.error('Full Error Object:', error);
+                    let msg = 'عذراً، حدث خطأ أثناء إرسال البيانات.';
+                    if (error.message) msg += '\nالتفاصيل: ' + error.message;
+                    if (error.status === 403 || error.message?.includes('policy')) {
+                        msg += '\n\nتلميح: يبدو أن النظام يفتقد للصلاحية (Policies) لرفع الملفات في Supabase.';
+                    }
+                    alert(msg);
+                } finally {
+                    btnSubmit.innerHTML = originalBtnText;
+                    btnSubmit.disabled = false;
+                }
+            }
+        }
+
+        function closeSuccessModal() {
+            // Hide modal
+            document.getElementById('successModal').classList.remove('active');
+            
+            // Reset form and go back to step 1
+            document.getElementById('mainForm').reset();
+            currentStep = 0;
+            updateProgress();
+            
+            // Clear previews
+            document.querySelectorAll('.preview-gallery').forEach(g => g.innerHTML = '');
+            
+            // Re-disable Next button on step 1 since form is reset
+            toggleNextBtn();
+
+            // Return to landing page
+            document.getElementById('landing-page').classList.remove('hidden');
+            document.querySelector('.top-bar').classList.add('hidden');
+            document.querySelector('.progress-container').classList.add('hidden');
+            document.querySelector('.main-container').classList.add('hidden');
+        }
+
+        function nextStep() {
+            if (!validateCurrentStep()) {
+                return; // Stop if the step is not valid
+            }
+
+            if (currentStep < totalSteps - 1) {
+                currentStep++;
+                updateProgress();
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+        }
+
+        function prevStep() {
+            if (currentStep > 0) {
+                currentStep--;
+                updateProgress();
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+        }
+
+        function goToStep(step) {
+            // Prevent skipping ahead if current step isn't valid
+            if (step > currentStep && !validateCurrentStep()) {
+                return;
+            }
+
+            if (step <= currentStep || (step === currentStep + 1 && validateCurrentStep())) {
+                currentStep = step;
+                updateProgress();
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+        }
+
+        // Dynamic Children
+        function addChild() {
+            const list = document.getElementById('childrenList');
+            const item = document.createElement('div');
+            item.className = 'dynamic-item';
+            item.innerHTML = `
+                <input type="text" name="childName[]" placeholder="اسم الابن/المعال">
+                <select name="childStage[]">
+                    <option value="" disabled selected>المرحلة</option>
+                    <option value="رضيع">رضيع</option>
+                    <option value="ما قبل المدرسة">ما قبل المدرسة</option>
+                    <option value="ابتدائي">ابتدائي</option>
+                    <option value="متوسط">متوسط</option>
+                    <option value="ثانوي">ثانوي</option>
+                    <option value="جامعي">جامعي</option>
+                    <option value="غير ذلك">غير ذلك</option>
+                </select>
+                <button type="button" class="btn-remove" onclick="removeChild(this)" title="حذف">✕</button>
+            `;
+            list.appendChild(item);
+        }
+
+        function removeChild(btn) {
+            const list = document.getElementById('childrenList');
+            if (list.children.length > 1) {
+                btn.closest('.dynamic-item').remove();
+            }
+        }
+
+        // Toggle Next Button on Step 1 based on Pledge
+        function toggleNextBtn() {
+            const btnNext = document.getElementById('btn-next-step1');
+            const commitYesBox = document.getElementById('commit-yes');
+            
+            if (commitYesBox.checked) {
+                btnNext.disabled = false;
+                btnNext.style.opacity = '1';
+                btnNext.style.cursor = 'pointer';
+            } else {
+                btnNext.disabled = true;
+                btnNext.style.opacity = '0.5';
+                btnNext.style.cursor = 'not-allowed';
+            }
+        }
+
+        // Preview Selected Files
+        function previewFiles(input, galleryId) {
+            const gallery = document.getElementById(galleryId);
+            gallery.innerHTML = ''; // Clear old previews
+            
+            if (input.files) {
+                Array.from(input.files).forEach((file, index) => {
+                    const reader = new FileReader();
+                    
+                    reader.onload = function(e) {
+                        const div = document.createElement('div');
+                        div.className = 'preview-item';
+                        
+                        // Check if it's an image or a PDF/other file
+                        if (file.type.startsWith('image/')) {
+                            div.innerHTML = `<img src="${e.target.result}" alt="Preview" title="${file.name}">`;
+                        } else {
+                            div.innerHTML = `<div class="file-icon" title="${file.name}">📄</div>`;
+                        }
+                        
+                        // Add remove button (visual only for now without complex DataTransfer logic)
+                        const removeBtn = document.createElement('button');
+                        removeBtn.className = 'preview-remove';
+                        removeBtn.innerHTML = '✕';
+                        removeBtn.type = 'button';
+                        removeBtn.onclick = function() {
+                            div.remove();
+                            // Note: Removing from input.files requires DataTransfer object, keeping it simple visual for now
+                        };
+                        
+                        div.appendChild(removeBtn);
+                        gallery.appendChild(div);
+                    };
+                    
+                    reader.readAsDataURL(file);
+                });
+            }
+        }
+
+        // Map Initialization
+        let map, marker;
+        function initMap() {
+            // Default center (Riyadh)
+            const defaultPos = [24.7136, 46.6753];
+            
+            // Initializing with Satellite View (Esri World Imagery)
+            map = L.map('locationMap').setView(defaultPos, 16);
+            
+            L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+                attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EBP, and the GIS User Community'
+            }).addTo(map);
+
+            // Add a labels layer if needed for better navigation
+            L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', {
+                attribution: 'Labels &copy; Esri'
+            }).addTo(map);
+
+            marker = L.marker(defaultPos, {
+                draggable: true
+            }).addTo(map);
+
+            function updateCoords(lat, lng) {
+                document.getElementById('latitude').value = lat;
+                document.getElementById('longitude').value = lng;
+            }
+
+            // Update on drag
+            marker.on('dragend', function (e) {
+                const pos = marker.getLatLng();
+                updateCoords(pos.lat, pos.lng);
+            });
+
+            // Update on map click
+            map.on('click', function (e) {
+                marker.setLatLng(e.latlng);
+                updateCoords(e.latlng.lat, e.latlng.lng);
+            });
+
+            // Try to geolocate user for "nearby" effect
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition((position) => {
+                    const userPos = [position.coords.latitude, position.coords.longitude];
+                    map.setView(userPos, 17);
+                    marker.setLatLng(userPos);
+                    updateCoords(userPos[0], userPos[1]);
+                }, () => {
+                    // Fallback to default
+                    updateCoords(defaultPos[0], defaultPos[1]);
+                });
+            } else {
+                updateCoords(defaultPos[0], defaultPos[1]);
+            }
+        }
+
+        // Delay map init until Step 4 is reached or tab is active
+        // A simple way is to check in updateProgress
+    </script>
+
+</body>
+</html>

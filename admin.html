@@ -1,0 +1,999 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>لوحة التحكم - صندوق ظفر</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        :root {
+            --primary: #2563EB;
+            --primary-dark: #1D4ED8;
+            --primary-light: #EFF6FF;
+            --danger: #EF4444;
+            --danger-light: #FEF2F2;
+            --success: #10B981;
+            --success-light: #ECFDF5;
+            --warning: #F59E0B;
+            --warning-light: #FFFBEB;
+            --bg-color: #F8FAFC;
+            --card-bg: #FFFFFF;
+            --text-main: #0F172A;
+            --text-muted: #64748B;
+            --border: #E2E8F0;
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --radius-lg: 16px;
+            --radius-md: 12px;
+            --radius-sm: 8px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Cairo', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Navbar */
+        .navbar {
+            background-color: var(--card-bg);
+            box-shadow: var(--shadow-sm);
+            padding: 15px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .navbar-brand {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .navbar-brand img {
+            height: 50px;
+            border-radius: 50%;
+        }
+
+        .navbar-brand h1 {
+            font-size: 20px;
+            font-weight: 800;
+            color: var(--text-main);
+        }
+
+        .logout-btn {
+            padding: 8px 16px;
+            background: var(--danger-light);
+            color: var(--danger);
+            border: none;
+            border-radius: var(--radius-sm);
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .logout-btn:hover {
+            background: var(--danger);
+            color: white;
+        }
+
+        /* Layout */
+        .container {
+            flex: 1;
+            max-width: 1200px;
+            margin: 40px auto;
+            width: 100%;
+            padding: 0 20px;
+        }
+
+        /* Tabs */
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+            border-bottom: 2px solid var(--border);
+            padding-bottom: 15px;
+        }
+
+        .tab-btn {
+            background: none;
+            border: none;
+            padding: 10px 20px;
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--text-muted);
+            cursor: pointer;
+            border-radius: var(--radius-md);
+            transition: all 0.2s;
+        }
+
+        .tab-btn:hover {
+            background: var(--primary-light);
+            color: var(--primary);
+        }
+
+        .tab-btn.active {
+            background: var(--primary);
+            color: white;
+        }
+
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Panel Card */
+        .panel {
+            background: var(--card-bg);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-md);
+            padding: 30px;
+        }
+
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+        }
+
+        .panel-title {
+            font-size: 20px;
+            font-weight: 800;
+            color: var(--text-main);
+        }
+
+        /* Search input */
+        .search-wrapper {
+            position: relative;
+            width: 100%;
+            max-width: 400px;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 12px 20px 12px 45px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            font-size: 15px;
+            outline: none;
+            transition: all 0.2s;
+            background: var(--bg-color);
+        }
+
+        .search-input:focus {
+            border-color: var(--primary);
+            background: white;
+            box-shadow: 0 0 0 3px var(--primary-light);
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-muted);
+        }
+
+        .tag {
+            display: inline-block;
+            background: var(--primary-light);
+            color: var(--primary);
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 700;
+            margin: 2px;
+        }
+
+        /* Table */
+        .table-container {
+            overflow-x: auto;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: right;
+        }
+
+        th {
+            background-color: var(--bg-color);
+            color: var(--text-muted);
+            font-weight: 700;
+            font-size: 14px;
+            padding: 15px 20px;
+            border-bottom: 1px solid var(--border);
+            white-space: nowrap;
+        }
+
+        td {
+            padding: 15px 20px;
+            border-bottom: 1px solid var(--border);
+            font-size: 15px;
+            color: var(--text-main);
+            vertical-align: middle;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        tr:hover {
+            background-color: var(--bg-color);
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 6px 12px;
+            border-radius: 50px;
+            font-size: 13px;
+            font-weight: 700;
+        }
+
+        .status-new {
+            background: var(--primary-light);
+            color: var(--primary-dark);
+        }
+
+        .status-reviewed {
+            background: var(--warning-light);
+            color: #B45309;
+        }
+
+        .status-approved {
+            background: var(--success-light);
+            color: #047857;
+        }
+
+        .status-rejected {
+            background: var(--danger-light);
+            color: #B91C1C;
+        }
+
+        .action-btn {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            padding: 5px;
+            border-radius: 5px;
+            transition: all 0.2s;
+        }
+
+        .action-btn:hover {
+            color: var(--primary);
+            background: var(--primary-light);
+        }
+
+        .action-select {
+            padding: 6px 10px;
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--border);
+            font-size: 13px;
+            font-weight: 600;
+            outline: none;
+            cursor: pointer;
+        }
+
+        /* Settings Form */
+        .form-group {
+            margin-bottom: 25px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--text-main);
+            margin-bottom: 10px;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 14px 16px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            font-size: 15px;
+            background: var(--bg-color);
+            transition: all 0.2s;
+            outline: none;
+        }
+
+        .form-control:focus {
+            background: white;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px var(--primary-light);
+        }
+
+        textarea.form-control {
+            min-height: 120px;
+            resize: vertical;
+        }
+
+        .btn-save {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 14px 30px;
+            border-radius: var(--radius-md);
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .btn-save:hover {
+            background: var(--primary-dark);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 50px 20px;
+            color: var(--text-muted);
+        }
+
+        .empty-state svg {
+            width: 60px;
+            height: 60px;
+            margin-bottom: 15px;
+            color: var(--border);
+        }
+
+        .empty-state h3 {
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+
+        /* Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.4);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            backdrop-filter: blur(4px);
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal {
+            background: var(--card-bg);
+            width: 100%;
+            max-width: 600px;
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-lg);
+            max-height: 90vh;
+            display: flex;
+            flex-direction: column;
+            animation: scaleIn 0.3s ease;
+        }
+
+        @keyframes scaleIn {
+            from { transform: scale(0.95); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+
+        .modal-header {
+            padding: 20px 25px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-title {
+            font-size: 18px;
+            font-weight: 800;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 24px;
+            color: var(--text-muted);
+            cursor: pointer;
+        }
+
+        .modal-body {
+            padding: 25px;
+            overflow-y: auto;
+        }
+
+        .detail-item {
+            margin-bottom: 15px;
+            display: flex;
+            border-bottom: 1px dashed var(--border);
+            padding-bottom: 10px;
+        }
+
+        .detail-label {
+            width: 150px;
+            font-weight: 700;
+            color: var(--text-muted);
+            flex-shrink: 0;
+        }
+
+        .detail-value {
+            color: var(--text-main);
+            font-weight: 600;
+        }
+
+        .modal-footer {
+            padding: 20px 25px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+
+        .btn-outline {
+            padding: 10px 20px;
+            border: 1px solid var(--border);
+            background: white;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            font-weight: 700;
+        }
+
+        .btn-outline:hover {
+            background: var(--bg-color);
+        }
+
+        /* Login Overlay */
+        .login-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--primary);
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            z-index: 5000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            backdrop-filter: blur(10px);
+        }
+
+        .login-card {
+            background: white;
+            padding: 40px;
+            border-radius: var(--radius-lg);
+            box-shadow: 0 20px 50px rgba(0,0,0,0.2);
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+        }
+
+        .login-card img {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            margin-bottom: 20px;
+            border: 3px solid var(--primary-light);
+        }
+
+        .login-card h2 {
+            margin-bottom: 25px;
+            font-size: 24px;
+            color: var(--text-main);
+        }
+
+        .login-form input {
+            width: 100%;
+            padding: 15px;
+            margin-bottom: 20px;
+            border: 2px solid var(--border);
+            border-radius: var(--radius-md);
+            font-size: 18px;
+            text-align: center;
+            outline: none;
+            transition: all 0.3s;
+        }
+
+        .login-form input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 4px var(--primary-light);
+        }
+
+        .btn-login {
+            width: 100%;
+            padding: 15px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: var(--radius-md);
+            font-size: 17px;
+            font-weight: 800;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-login:hover {
+            background: var(--primary-dark);
+            transform: translateY(-2px);
+        }
+
+        .login-error {
+            color: var(--danger);
+            font-size: 14px;
+            font-weight: 700;
+            margin-bottom: 15px;
+            display: none;
+        }
+
+        .btn-delete {
+            background: var(--danger-light);
+            color: var(--danger);
+            border: none;
+            padding: 6px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn-delete:hover {
+            background: var(--danger);
+            color: white;
+        }
+
+        .hidden-admin {
+            display: none !important;
+        }
+
+        @media (max-width: 768px) {
+            .navbar {
+                padding: 15px 20px;
+            }
+            .panel {
+                padding: 20px;
+            }
+            .search-wrapper {
+                max-width: 100%;
+                margin-bottom: 15px;
+            }
+            .panel-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Login Overlay -->
+    <div id="loginOverlay" class="login-overlay">
+        <div class="login-card">
+            <img src="logo.png" alt="Logo">
+            <h2>تسجيل دخول الإدارة</h2>
+            <div id="loginError" class="login-error">كلمة المرور غير صحيحة!</div>
+            <form class="login-form" onsubmit="checkPassword(event)">
+                <input type="password" id="adminPassword" placeholder="كلمة المرور" required autofocus>
+                <button type="submit" class="btn-login">دخول</button>
+            </form>
+        </div>
+    </div>
+
+    <nav class="navbar hidden-admin">
+        <div class="navbar-brand">
+            <img src="logo.png" alt="صندوق ظفر">
+            <h1>لوحة التحكم - صندوق ظفر</h1>
+        </div>
+        <button class="logout-btn" onclick="logout()">تسجيل الخروج</button>
+    </nav>
+
+    <div class="container hidden-admin">
+        
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab('records')">سجلات الطلبات</button>
+            <button class="tab-btn" onclick="switchTab('settings')">إعدادات الاستبانة</button>
+        </div>
+
+        <!-- تبويب سجلات الطلبات -->
+        <div id="records-tab" class="tab-content active">
+            <div class="panel">
+                <div class="panel-header">
+                    <div class="panel-title">الطلبات المُرسلة</div>
+                    <div class="search-wrapper">
+                        <svg class="search-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                        <input type="text" id="searchInput" class="search-input" placeholder="ابحث بالاسم أو رقم الهوية أو الجوال..." onkeyup="filterTable()">
+                    </div>
+                </div>
+
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>التاريخ</th>
+                                <th>الاسم</th>
+                                <th>رقم الهوية</th>
+                                <th>الجوال</th>
+                                <th>الأولوية</th>
+                                <th width="120">حالة الطلب</th>
+                                <th style="width: 100px;">إجراء</th>
+                            <th style="width: 50px;">حذف</th>
+                        </tr>
+                    </thead>
+                        <tbody id="tableBody">
+                            <!-- سيتم تعبئة البيانات عبر الجافاسكربت -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- تبويب إعدادات الاستبانة -->
+        <div id="settings-tab" class="tab-content">
+            <div class="panel" style="max-width: 600px; margin: 0 auto;">
+                <div class="panel-header border-bottom" style="margin-bottom: 25px;">
+                    <div class="panel-title">إعدادات النظام</div>
+                </div>
+
+                <div class="form-group" style="background: var(--bg-color); padding: 20px; border-radius: var(--radius-md); display: flex; justify-content: space-between; align-items: center; border: 1px solid var(--border);">
+                    <div>
+                        <label style="margin-bottom: 5px;">حالة استقبال الطلبات</label>
+                        <p style="font-size: 13px; color: var(--text-muted);">تفعيل أو إيقاف الاستمارة عن استقبال أي طلبات جديدة</p>
+                    </div>
+                    <div>
+                        <select id="formStatus" class="form-control" style="width: auto;" onchange="alert('تم تحديث حالة الاستمارة بنجاح (معاينة)')">
+                            <option value="open" selected>مفتوح (استقبال)</option>
+                            <option value="closed">مغلق (إيقاف)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div style="margin-top: 40px; border-top: 2px solid var(--border); padding-top: 30px;">
+                    <div class="panel-title" style="margin-bottom: 20px; font-size: 18px;">تغيير كلمة مرور الدخول</div>
+                    
+                    <div class="form-group">
+                        <label>كلمة المرور الجديدة</label>
+                        <input type="password" id="newPassword" class="form-control" placeholder="أدخل كلمة المرور الجديدة">
+                    </div>
+
+                    <div style="display: flex; justify-content: flex-end;">
+                        <button type="button" class="btn-save" onclick="updatePassword()">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                            </svg>
+                            تحديث كلمة المرور
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- نافذة تفاصيل الطلب (Modal) -->
+    <div class="modal-overlay" id="detailModal">
+        <div class="modal">
+            <div class="modal-header">
+                <div class="modal-title">تفاصيل طلب المساعدة</div>
+                <button class="modal-close" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="modal-body" id="modalBody">
+                <!-- Data goes here -->
+            </div>
+            <div class="modal-footer">
+                <button class="btn-outline" onclick="closeModal()">إغلاق</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Supabase Configuration
+        // Supabase Configuration
+        const SUPABASE_URL = 'https://nxloeclhomucrqcaoffq.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im54bG9lY2xob211Y3JxY2FvZmZxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIyMTc2NDEsImV4cCI6MjA4Nzc5MzY0MX0.L1pwRy7r9WQQPeKKXnkNr7KYGPRDKLFfk4IyDhQJ8Vk';
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        
+        let applications = [];
+
+        // Check for session
+        window.addEventListener('DOMContentLoaded', () => {
+            if (localStorage.getItem('admin_authenticated') === 'true') {
+                showDashboard();
+            }
+        });
+
+        function checkPassword(e) {
+            e.preventDefault();
+            const pass = document.getElementById('adminPassword').value;
+            const errorMsg = document.getElementById('loginError');
+            
+            // Get saved password from localStorage or use default
+            const correctPass = localStorage.getItem('admin_gate_password') || 'DF2030@';
+            
+            if (pass === correctPass) {
+                localStorage.setItem('admin_authenticated', 'true');
+                showDashboard();
+            } else {
+                errorMsg.style.display = 'block';
+                document.getElementById('adminPassword').value = '';
+            }
+        }
+
+        function updatePassword() {
+            const newPass = document.getElementById('newPassword').value;
+            if (newPass.length < 4) {
+                alert('كلمة المرور قصيرة جداً، يرجى اختيار كلمة مرور قوية.');
+                return;
+            }
+            
+            if (confirm('هل أنت متأكد من رغبتك في تغيير كلمة مرور الدخول؟')) {
+                localStorage.setItem('admin_gate_password', newPass);
+                alert('تم تحديث كلمة المرور بنجاح! سيطلب منك النظام كلمة المرور الجديدة في المرة القادمة.');
+                document.getElementById('newPassword').value = '';
+            }
+        }
+
+        function showDashboard() {
+            document.getElementById('loginOverlay').style.display = 'none';
+            document.querySelectorAll('.hidden-admin').forEach(el => el.classList.remove('hidden-admin'));
+            fetchApplications();
+        }
+
+        function logout() {
+            localStorage.removeItem('admin_authenticated');
+            location.reload();
+        }
+
+        async function fetchApplications() {
+            try {
+                const { data, error } = await supabaseClient
+                    .from('submissions')
+                    .select('*')
+                    .order('created_at', { ascending: false });
+
+                if (error) throw error;
+                applications = data;
+                renderTable();
+            } catch (error) {
+                console.error('Error fetching data:', error);
+                document.getElementById('tableBody').innerHTML = `<tr><td colspan="7" style="text-align:center; color:var(--danger); padding:20px;">خطأ في جلب البيانات من الخادم.</td></tr>`;
+            }
+        }
+
+        // التبديل بين التبويبات
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            
+            event.currentTarget.classList.add('active');
+            document.getElementById(tabId + '-tab').classList.add('active');
+
+            if (tabId === 'records') fetchApplications();
+        }
+
+        function renderTable() {
+            const tbody = document.getElementById('tableBody');
+            const query = document.getElementById('searchInput').value.toLowerCase();
+            
+            let filtered = applications.filter(app => 
+                (app.full_name && app.full_name.toLowerCase().includes(query)) || 
+                (app.id_number && app.id_number.includes(query)) || 
+                (app.phone && app.phone.includes(query)) ||
+                (app.priority_need && app.priority_need.includes(query))
+            );
+
+            if (filtered.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="7">
+                            <div class="empty-state">
+                                <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                <h3>لا توجد طلبات مطابقة أو لم يتم استقبال طلبات بعد</h3>
+                                <p>سيظهر أي طلب جديد يتم إرساله هنا فوراً</p>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tbody.innerHTML = filtered.map(app => {
+                // Formatting date
+                const dateObj = new Date(app.created_at);
+                const dateStr = dateObj.toLocaleDateString('ar-SA');
+                
+                // Status mapping (since DB doesn't have status yet, default to 'جديد')
+                const displayStatus = app.status || 'جديد';
+                let statusClass = 'status-new';
+
+                return `
+                    <tr>
+                        <td><span style="color:var(--text-muted); font-size:13px;">${dateStr}</span></td>
+                        <td style="font-weight:700;">${app.full_name}</td>
+                        <td style="letter-spacing:1px;">${app.id_number}</td>
+                        <td dir="ltr" style="text-align:right;">${app.phone}</td>
+                        <td style="font-weight:600; color:var(--primary);">${app.priority_need || '-'}</td>
+                        <td>
+                            <span class="status-badge ${statusClass}">${displayStatus}</span>
+                        </td>
+                        <td>
+                            <button class="action-btn" title="عرض التفاصيل" onclick="viewDetails('${app.id}')">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                </svg>
+                            </button>
+                        </td>
+                        <td>
+                            <button class="btn-delete" title="حذف السجل" onclick="deleteRecord('${app.id}')">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        async function deleteRecord(id) {
+            if (!confirm('هل أنت متأكد من رغبتك في حذف هذا السجل بشكل نهائي؟ لا يمكن التراجع عن هذه الخطوة.')) return;
+
+            try {
+                const { error } = await supabaseClient
+                    .from('submissions')
+                    .delete()
+                    .eq('id', id);
+
+                if (error) throw error;
+                
+                // Refresh data
+                fetchApplications();
+            } catch (error) {
+                console.error('Error deleting:', error);
+                let msg = 'فشل عملية الحذف، يرجى المحاولة مرة أخرى.';
+                if (error.message) msg += '\n\nالتفاصيل: ' + error.message;
+                alert(msg);
+            }
+        }
+
+        function filterTable() {
+            renderTable();
+        }
+
+        function viewDetails(id) {
+            let app = applications.find(a => a.id === id);
+            if(!app) return;
+
+            let body = document.getElementById('modalBody');
+            
+            // Format Depedents
+            let dependentsHtml = (app.dependents && app.dependents.length > 0) 
+                ? app.dependents.map(d => `<div style="margin-bottom:5px; font-size:14px;">👨‍👩‍👧‍👦 ${d.name} (${d.stage})</div>`).join('')
+                : 'لا يوجد';
+
+            body.innerHTML = `
+                <div class="detail-item"><div class="detail-label">تاريخ الطلب</div><div class="detail-value">${new Date(app.created_at).toLocaleString('ar-SA')}</div></div>
+                <div class="detail-item"><div class="detail-label">الاسم الكامل</div><div class="detail-value">${app.full_name}</div></div>
+                <div class="detail-item"><div class="detail-label">رقم الهوية</div><div class="detail-value">${app.id_number}</div></div>
+                <div class="detail-item"><div class="detail-label">العمر</div><div class="detail-value">${app.age}</div></div>
+                <div class="detail-item"><div class="detail-label">رقم الجوال</div><div class="detail-value">${app.phone}</div></div>
+                <div class="detail-item"><div class="detail-label">جوال بديل</div><div class="detail-value">${app.alt_phone || '-'}</div></div>
+                <div class="detail-item"><div class="detail-label">الحالة الاجتماعية</div><div class="detail-value">${app.marital_status}</div></div>
+                <div class="detail-item"><div class="detail-label">الحالة الوظيفية</div><div class="detail-value">${app.employment_status}</div></div>
+                <div class="detail-item"><div class="detail-label">متوسط الدخل</div><div class="detail-value">${app.income}</div></div>
+                <div class="detail-item"><div class="detail-label">مبلغ الديون</div><div class="detail-value" style="color:var(--danger); font-weight:700;">${app.debt_amount || 0} ريال</div></div>
+                <div class="detail-item"><div class="detail-label">الحالة الصحية</div><div class="detail-value">${app.medical_info || 'سليم'}</div></div>
+                
+                <h4 style="margin:20px 0 10px; color:var(--primary);">💰 الدعم والاحتياج</h4>
+                <div class="detail-item">
+                    <div class="detail-label">الأولوية القصوى</div>
+                    <div class="detail-value"><span style="background:#FEF2F2; color:#991B1B; padding:4px 12px; border-radius:20px; font-weight:700;">${app.priority_need || '-'}</span></div>
+                </div>
+                <div class="detail-item">
+                    <div class="detail-label">مصادر الدعم</div>
+                    <div class="detail-value">${(app.support_sources && app.support_sources.length > 0) ? app.support_sources.map(s => `<span class="tag">${s}</span>`).join(' ') : 'لا يوجد'}</div>
+                </div>
+
+                <h4 style="margin:20px 0 10px; color:var(--primary);">🏠 السكن والبنك</h4>
+                <div class="detail-item"><div class="detail-label">نوع السكن</div><div class="detail-value">${app.housing_type}</div></div>
+                <div class="detail-item"><div class="detail-label">الملكية</div><div class="detail-value">${app.ownership}</div></div>
+                <div class="detail-item"><div class="detail-label">الإيجار</div><div class="detail-value">${app.rent_amount || '-'}</div></div>
+                <div class="detail-item"><div class="detail-label">عدد الغرف</div><div class="detail-value">${app.rooms_count || 0}</div></div>
+                <div class="detail-item">
+                    <div class="detail-label">احتياجات المنزل</div>
+                    <div class="detail-value">${(app.home_needs && app.home_needs.length > 0) ? app.home_needs.map(n => `<span class="tag">${n}</span>`).join(' ') : 'لا يوجد'}</div>
+                </div>
+                
+                <div class="detail-item"><div class="detail-label">اسم البنك</div><div class="detail-value">${app.bank_name || '-'}</div></div>
+                <div class="detail-item"><div class="detail-label">رقم الآيبان</div><div class="detail-value">${app.account_number || '-'}</div></div>
+                
+                ${app.latitude && app.longitude ? `
+                <div class="detail-item" style="background:var(--primary-lighter); padding:10px; border-radius:8px; margin-top:15px; border:1px dashed var(--primary);">
+                    <div class="detail-label" style="color:var(--primary);">الموقع الجغرافي</div>
+                    <div class="detail-value">
+                        <a href="https://www.google.com/maps?q=${app.latitude},${app.longitude}" target="_blank" style="color:var(--primary); font-weight:800; text-decoration:none; display:flex; align-items:center; gap:5px;">
+                            📍 عرض موقع المنزل على الخريطة
+                        </a>
+                    </div>
+                </div>
+                ` : ''}
+
+                <h4 style="margin:20px 0 10px; color:var(--primary);">📄 المستندات المرفقة</h4>
+                <div class="detail-item">
+                    <div class="detail-label">صور الهوية</div>
+                    <div class="detail-value">
+                        ${(app.id_files && app.id_files.length > 0) 
+                            ? app.id_files.map((url, i) => `<a href="${url}" target="_blank" style="display:inline-block; color:var(--primary); margin-right:10px; font-weight:600;">📄 ملف ${i+1}</a>`).join('')
+                            : 'لا يوجد'}
+                    </div>
+                </div>
+
+                <h4 style="margin:20px 0 10px; color:var(--primary);">👨‍👩‍👧‍👦 التابعين / الأبناء</h4>
+                <div style="background:var(--bg-color); padding:15px; border-radius:var(--radius-sm);">
+                    ${dependentsHtml}
+                </div>
+            `;
+            document.getElementById('detailModal').classList.add('active');
+        }
+
+        function closeModal() {
+            document.getElementById('detailModal').classList.remove('active');
+        }
+
+        // Close modal on click outside
+        document.getElementById('detailModal').addEventListener('click', function(e) {
+            if(e.target === this) {
+                closeModal();
+            }
+        });
+
+        // تشغيل الجلب عند البداية
+        // Removed immediate fetch to prevent errors before login
+        // fetchApplications();
+
+    </script>
+    <div class="page-footer" style="padding: 30px 20px; text-align: center; border-top: 1px solid var(--border); background: #fcfcfc; margin-top: 50px;">
+        <div style="font-weight: 700; color: var(--primary); font-size: 15px; margin-bottom: 5px;">جميع الحقوق محفوظة لصندوق ظفر &copy; 2026</div>
+        <div style="font-size: 11px; color: var(--text-muted); letter-spacing: 0.5px; opacity: 0.8;">تصميم وبرمجة abu zaid</div>
+    </div>
+</body>
+</html>
