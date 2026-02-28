@@ -8,12 +8,15 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         :root {
-            --primary: #2563EB;
-            --primary-dark: #1D4ED8;
-            --primary-light: #EFF6FF;
-            --danger: #EF4444;
+            --primary: #1B3A2A;
+            --primary-dark: #122B1E;
+            --primary-light: #F4F6F5;
+            --gold: #C5A55A;
+            --gold-dark: #A8893E;
+            --gold-light: #D4BA7A;
+            --danger: #DC2626;
             --danger-light: #FEF2F2;
-            --success: #10B981;
+            --success: #16A34A;
             --success-light: #ECFDF5;
             --warning: #F59E0B;
             --warning-light: #FFFBEB;
@@ -102,21 +105,23 @@
         /* Tabs */
         .tabs {
             display: flex;
-            gap: 10px;
+            gap: 15px;
             margin-bottom: 30px;
-            border-bottom: 2px solid var(--border);
-            padding-bottom: 15px;
+            background: white;
+            padding: 5px;
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow-sm);
         }
 
         .tab-btn {
-            background: none;
+            padding: 10px 25px;
             border: none;
-            padding: 10px 20px;
+            background: none;
+            cursor: pointer;
             font-size: 16px;
             font-weight: 700;
             color: var(--text-muted);
-            cursor: pointer;
-            border-radius: var(--radius-md);
+            border-radius: var(--radius-sm);
             transition: all 0.2s;
         }
 
@@ -250,7 +255,7 @@
         .status-badge {
             display: inline-flex;
             align-items: center;
-            padding: 6px 12px;
+            padding: 4px 12px;
             border-radius: 50px;
             font-size: 13px;
             font-weight: 700;
